@@ -1,4 +1,5 @@
 use std::usize;
+use rand::random;
 
 pub const SCREEN_WIDTH: usize = 64;
 pub const SCREEN_HEIGHT: usize = 32;
@@ -8,6 +9,7 @@ const NUM_REGS: usize = 16; // array sizes have to be of size usize
 const STACK_SIZE: usize = 16;
 const START_ADDR: u16 = 0x200; // 512 in decimal, which is the standard starting address for executables in chip8
 const FONTSET_SIZE: usize = 80;
+const NUM_KEYS: usize = 16;
 
 const FONTSET: [u8; FONTSET_SIZE] = [
     0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
@@ -36,6 +38,7 @@ pub struct Emu {
     i_reg: u16,
     sp: u16,
     stack: [u16; STACK_SIZE],
+    keys: [bool; NUM_KEYS],
     dt: u8,
     st: u8,
 }
@@ -50,6 +53,7 @@ impl Emu {
             i_reg: 0,
             sp: 0,
             stack: [0; STACK_SIZE],
+            keys: [false; NUM_KEYS],
             dt: 0,
             st: 0,
         };
@@ -266,6 +270,76 @@ impl Emu {
                 let nnn = op & 0xFFF;
                 self.pc = (self.v_reg[0] as u16) + nnn;
             },
+            // CXNN  VX = rand() & NN
+            (0XC, _, _, _) => {
+                let x = digit2 as usize;
+                let nn = (op & 0xFF);
+                // have to specify u8 for random() to know which type is gonna be generated
+                let rng: u8 = random();
+                self.v_reg[x] = rng & nn;
+            },
+            // DXYN Draw Sprite
+            (0xD, _, _, _) => {
+                // get the X and Y coordinates
+                let x_coord = self.v_reg[digit2 as usize] as u16;
+                let x_coord = self.v_reg[digit3 as usize] as u16;
+                // The last digit (N) determines how many rows higher is the sprite
+                let num_rows = digit4;
+                // flipped pixel tracking
+                let mut flipped = false;
+                // iterate over each row of the sprite
+                for y_line in 0..num_rows {
+                    // memory address of the sprite row data
+                    let addr = self.i_reg + y_line as u16;
+                    let pixels = self.ram[addr as usize];
+                    // iterate over each column in the row, every row is 8 pixels wide
+                    for x_line in 0..8 {
+                        // fetch pixels using a mask
+                        if (pixels & (0b1000_0000 >> x_line)) != 0 {
+                            // wrap around screen using modulo
+                            let x = (x_coord + x_line) as uszie % SCREEN_WIDTH;
+                            let y = (y_coord + y_line) as uszie % SCREEN_WIDTH;
+
+                            // get pixel index for the 1D screen array
+                            let index = x + SCREEN_WIDTH * y;
+                            // check flipping
+                            flipped |= self.screen[index];
+                            self.screen[index] ^= true;
+                        }
+                    }
+                }
+                // if the pixel flipped set VF regsiter
+                if flipped {
+                    self.v_reg[0xF] = 1;
+                } else {
+                    self.v_reg[0xF] = 0;
+                }
+            },
+            // EX9E Skip if key pressed
+            (0xE, _, 9, 0xE) => {
+                let x = digit2 as usize;
+                let vx = self.v_reg[x];
+                let key = self.keys[vx as usize];
+                // if key pressed skip instruction
+                if key {
+                    self.pc += 2;
+                }
+            },
+            // EXA1 Skip if key not pressed
+            (0xE, _, 0xA, 1) => {
+                let x = digit2 as usize;
+                let vx = self.v_reg[x];
+                let key = self.keys[vx as usize];
+                // if key pressed skip instruction
+                if !key {
+                    self.pc += 2;
+                }
+            }, 
+            // FX07 VX = DT
+            (0xF, _, 0, 7) => {
+                let x = digit2 as usize;
+                self.v_reg[x] = self.dt;
+            }
             (_, _, _, _) => unimplemented!("unimplemented opcode {}", op)
 
         }
