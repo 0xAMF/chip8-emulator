@@ -1,5 +1,5 @@
 use std::usize;
-use rand::random;
+use rand::{random, seq::index};
 
 pub const SCREEN_WIDTH: usize = 64;
 pub const SCREEN_HEIGHT: usize = 32;
@@ -340,6 +340,77 @@ impl Emu {
                 let x = digit2 as usize;
                 self.v_reg[x] = self.dt;
             }
+            // FX0A - Wait for Key Press
+            (0xF, _, 0, 0xA) => {
+                let x = digit2;
+                let mut pressed = false;
+                for i in 0..self.keys.len() {
+                    if self.keys[i] {
+                        self.v_reg[x] = i as u8;
+                        pressed = true;
+                        break;
+                    }
+                }
+                if !pressed {
+                    // repeat instruction if no key is pressed, to be stuck in a loop untill a
+                    // key is pressed
+                    self.pc -= 2;
+                }
+
+            },
+            // FX15 - DT = VX
+            (0xF, _, 1, 5) => {
+                let x = digit2;
+                self.dt = self.v_reg[x];
+            },
+            // FX18 - ST = VX
+            (0xF, _, 1, 8) => {
+                let x = digit2;
+                self.st = self.v_reg[x];
+            },
+            // FX1E - I += VX
+            (0xF, _, 1, 0xE) => {
+                let x = digit2;
+                let vx = self.v_reg[x];
+                self.i_reg = self.i_reg.wrapping_add(vx);
+            },
+            // FX29 - Set I to Font Address
+            (0xF, _, 2, 9) => {
+                let x = digit2;
+                let c = self.v_reg[x] as u16;
+                // note that we stored fonts at the begginning of the RAM, and each font is 5
+                // bytes so each character is stored at its index * 5 in RAM
+                self.i_reg *= 5;
+            },
+            // FX33 - I = BCD of VX
+            (0xF, _, 3, 3) => {
+                let x = digit2;
+                let vx = self.v_reg[x];
+                // fetch each decimal
+                let hundreds = (vx / 100.0).floor() as u8;
+                let tens = ((vx / 10.0) % 10).floor() as u8;
+                let ones = (vx % 10.0) as u8;
+                // store in ram
+                self.ram[self.i_reg as usize] = hundreds;
+                self.ram[(self.i_reg + 1) as usize] = tens;
+                self.ram[(self.i_reg + 2) as usize] = ones;
+            },
+            // FX55 Store V0 -> VX into I
+            (0xF, _, 5, 5) => {
+                let x = digit2;
+                let i = self.i_reg as usize;
+                for index in 0..=x {
+                    self.ram[i + index] = self.v_reg[index];
+                }
+            },
+            // FX65 Load I into V0 -> VX
+            (0xF, _, 6, 5) => {
+                let x = digit2;
+                let i = self.i_reg as usize;
+                for index in 0..=x {
+                    self.v_reg[index] = self.ram[i + index];
+                }
+            },
             (_, _, _, _) => unimplemented!("unimplemented opcode {}", op)
 
         }
@@ -355,5 +426,19 @@ impl Emu {
             }
             self.st -= 1;
         }
+    }
+
+    pub fn get_display(&self) -> &[bool] {
+        &self.screen
+    }
+
+    pub fn keypress(&mut self, index: usize, pressed: bool) {
+        self.keys[index] = pressed;
+    }
+
+    pub fn load(&mut self, data: &[u8]) {
+        let start = START_ADDR as usize;
+        let end = (START_ADDR as usize) + data.len();
+        self.ram[start..end].copy_from_slice(data);
     }
 }
