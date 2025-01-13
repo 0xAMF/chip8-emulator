@@ -271,9 +271,9 @@ impl Emu {
                 self.pc = (self.v_reg[0] as u16) + nnn;
             },
             // CXNN  VX = rand() & NN
-            (0XC, _, _, _) => {
+            (0xC, _, _, _) => {
                 let x = digit2 as usize;
-                let nn = (op & 0xFF);
+                let nn = (op & 0xFF) as u8;
                 // have to specify u8 for random() to know which type is gonna be generated
                 let rng: u8 = random();
                 self.v_reg[x] = rng & nn;
@@ -282,7 +282,7 @@ impl Emu {
             (0xD, _, _, _) => {
                 // get the X and Y coordinates
                 let x_coord = self.v_reg[digit2 as usize] as u16;
-                let x_coord = self.v_reg[digit3 as usize] as u16;
+                let y_coord = self.v_reg[digit3 as usize] as u16;
                 // The last digit (N) determines how many rows higher is the sprite
                 let num_rows = digit4;
                 // flipped pixel tracking
@@ -297,8 +297,8 @@ impl Emu {
                         // fetch pixels using a mask
                         if (pixels & (0b1000_0000 >> x_line)) != 0 {
                             // wrap around screen using modulo
-                            let x = (x_coord + x_line) as uszie % SCREEN_WIDTH;
-                            let y = (y_coord + y_line) as uszie % SCREEN_WIDTH;
+                            let x = (x_coord + x_line) as usize % SCREEN_WIDTH;
+                            let y = (y_coord + y_line) as usize % SCREEN_WIDTH;
 
                             // get pixel index for the 1D screen array
                             let index = x + SCREEN_WIDTH * y;
@@ -342,7 +342,7 @@ impl Emu {
             }
             // FX0A - Wait for Key Press
             (0xF, _, 0, 0xA) => {
-                let x = digit2;
+                let x = digit2 as usize;
                 let mut pressed = false;
                 for i in 0..self.keys.len() {
                     if self.keys[i] {
@@ -360,35 +360,35 @@ impl Emu {
             },
             // FX15 - DT = VX
             (0xF, _, 1, 5) => {
-                let x = digit2;
+                let x = digit2 as usize;
                 self.dt = self.v_reg[x];
             },
             // FX18 - ST = VX
             (0xF, _, 1, 8) => {
-                let x = digit2;
+                let x = digit2 as usize;
                 self.st = self.v_reg[x];
             },
             // FX1E - I += VX
             (0xF, _, 1, 0xE) => {
-                let x = digit2;
-                let vx = self.v_reg[x];
+                let x = digit2 as usize;
+                let vx = self.v_reg[x] as u16;
                 self.i_reg = self.i_reg.wrapping_add(vx);
             },
             // FX29 - Set I to Font Address
             (0xF, _, 2, 9) => {
-                let x = digit2;
+                let x = digit2 as usize;
                 let c = self.v_reg[x] as u16;
                 // note that we stored fonts at the begginning of the RAM, and each font is 5
                 // bytes so each character is stored at its index * 5 in RAM
-                self.i_reg *= 5;
+                self.i_reg = c * 5;
             },
             // FX33 - I = BCD of VX
             (0xF, _, 3, 3) => {
-                let x = digit2;
-                let vx = self.v_reg[x];
+                let x = digit2 as usize;
+                let vx = self.v_reg[x] as f32;
                 // fetch each decimal
                 let hundreds = (vx / 100.0).floor() as u8;
-                let tens = ((vx / 10.0) % 10).floor() as u8;
+                let tens = ((vx / 10.0) % 10.0).floor() as u8;
                 let ones = (vx % 10.0) as u8;
                 // store in ram
                 self.ram[self.i_reg as usize] = hundreds;
@@ -400,7 +400,7 @@ impl Emu {
                 let x = digit2;
                 let i = self.i_reg as usize;
                 for index in 0..=x {
-                    self.ram[i + index] = self.v_reg[index];
+                    self.ram[i + index as usize] = self.v_reg[index as usize];
                 }
             },
             // FX65 Load I into V0 -> VX
@@ -408,7 +408,7 @@ impl Emu {
                 let x = digit2;
                 let i = self.i_reg as usize;
                 for index in 0..=x {
-                    self.v_reg[index] = self.ram[i + index];
+                    self.v_reg[index as usize] = self.ram[i + index as usize];
                 }
             },
             (_, _, _, _) => unimplemented!("unimplemented opcode {}", op)
