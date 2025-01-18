@@ -7,10 +7,12 @@ use sdl2::pixels::Color;
 use sdl2::rect::Rect;
 use sdl2::render::Canvas;
 use sdl2::video::Window;
+use sdl2::keyboard::Keycode;
 
 const SCALE: u32 = 15;
 const WINDOW_WIDTH: u32 = (SCREEN_WIDTH as u32) * SCALE;
 const WINDOW_HEIGHT: u32 = (SCREEN_HEIGHT as u32)* SCALE;
+const TICK_PER_FRAME: usize = 10;
 
 fn main() {
     let args: Vec<_> = env::args().collect();
@@ -58,11 +60,25 @@ fn main() {
                 Event::Quit{..} => {
                     break 'gameloop;
                 },
+                Event::KeyDown { keycode: Some(key), .. } => {
+                    if let Some(k) = keymap(key) {
+                        chip8.keypress(k, true);
+                    }
+                },
+                Event::KeyUp { keycode: Some(key), .. } => {
+                    if let Some(k) = keymap(key) {
+                        chip8.keypress(k, false);
+                    }
+                },
                 _ => ()
             }
         }
-        // clock cycle
-        chip8.tick();
+        // clock cycle --> for loop to enhance refresh rate
+        for _ in 0..TICK_PER_FRAME {
+            chip8.tick();
+        }
+        // add 1 to timer counter register
+        chip8.tick_timers();
         draw_screen(&chip8, &mut canvas);
     }
 }
@@ -87,4 +103,47 @@ fn draw_screen(emu: &Emu, canvas: &mut Canvas<Window>) {
     }
 
     canvas.present();
+}
+
+fn keymap(key: Keycode) -> Option<usize> {
+    // 4x4 grid
+    //
+    // +----+----+----+----+
+    // | 1  | 2  | 4  | C  |
+    // +----+----+----+----+
+    // | 4  | 5  | 6  | D  |
+    // +----+----+----+----+   ==> CHIP8 Keys
+    // | 7  | 8  | 9  | E  |
+    // +----+----+----+----+
+    // | A  | 0  | B  | F  |
+    // +----+----+----+----+
+    //
+    // +----+----+----+----+
+    // | 1  | 2  | 3  | 4  |
+    // +----+----+----+----+
+    // | Q  | W  | E  | R  |
+    // +----+----+----+----+   ==> Keyboard Keys
+    // | A  | S  | D  | F  |
+    // +----+----+----+----+
+    // | Z  | X  | C  | V  |
+    // +----+----+----+----+
+    match key {
+        Keycode::Num1 => Some(0x1),
+        Keycode::Num2 => Some(0x2),
+        Keycode::Num3 => Some(0x3),
+        Keycode::Num4 => Some(0xC),
+        Keycode::Q =>    Some(0x4),
+        Keycode::W =>    Some(0x5),
+        Keycode::E =>    Some(0x6),
+        Keycode::R =>    Some(0xD),
+        Keycode::A =>    Some(0x7),
+        Keycode::S =>    Some(0x8),
+        Keycode::D =>    Some(0x9),
+        Keycode::F =>    Some(0xE),
+        Keycode::Z =>    Some(0xA),
+        Keycode::X =>    Some(0x0),
+        Keycode::C =>    Some(0xB),
+        Keycode::V =>    Some(0xF),
+        _ => None,
+    }
 }

@@ -298,7 +298,7 @@ impl Emu {
                         if (pixels & (0b1000_0000 >> x_line)) != 0 {
                             // wrap around screen using modulo
                             let x = (x_coord + x_line) as usize % SCREEN_WIDTH;
-                            let y = (y_coord + y_line) as usize % SCREEN_WIDTH;
+                            let y = (y_coord + y_line) as usize % SCREEN_HEIGHT;
 
                             // get pixel index for the 1D screen array
                             let index = x + SCREEN_WIDTH * y;
