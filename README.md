@@ -69,11 +69,4 @@ To build and run the emulator, ensure you have the following installed:
    A S D F       ->   7 8 9 E
    Z X C V       ->   A 0 B F
    ```
-
-3. Exit the emulator by closing the window or pressing the designated quit key (e.g., `Esc`).
-
-## License
-
-This project is licensed under the MIT License. For more details, see the [LICENSE](LICENSE) file.
-
 ---
