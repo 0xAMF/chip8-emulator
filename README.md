@@ -2,17 +2,6 @@
 
 Welcome to the **Chip8 Emulator** project! This repository contains a Rust-based implementation of the Chip8 virtual machine, enabling you to run and interact with programs written for this classic platform.
 
-## Table of Contents
-
-- [Overview](#overview)
-- [Features](#features)
-- [Prerequisites](#prerequisites)
-- [Building the Project](#building-the-project)
-- [Usage](#usage)
-- [License](#license)
-
----
-
 ## Overview
 
 The Chip8 is a simple, interpreted programming language and virtual machine originally developed in the 1970s to create video games. This emulator replicates the Chip8 virtual machine, allowing users to enjoy and experiment with classic Chip8 programs.
@@ -61,7 +50,7 @@ To build and run the emulator, ensure you have the following installed:
 
 2. Build the project using Cargo:
    ```bash
-   cargo build --release
+   cargo build
    ```
 
 3. The compiled executable will be located in the `target/release` directory.
@@ -70,7 +59,7 @@ To build and run the emulator, ensure you have the following installed:
 
 1. Run the emulator with a Chip8 ROM:
    ```bash
-   cargo run --release -- path/to/rom.ch8
+   cargo run -- path/to/ROM
    ```
 
 2. Use the keyboard to interact with the Chip8 program. The key mapping corresponds to the following layout:
@@ -88,6 +77,3 @@ To build and run the emulator, ensure you have the following installed:
 This project is licensed under the MIT License. For more details, see the [LICENSE](LICENSE) file.
 
 ---
-
-Enjoy emulating! If you encounter any issues or have questions, feel free to open an issue in this repository. Happy coding!
-
